@@ -1,0 +1,5 @@
+Flask
+Gunicorn
+Werkzeug
+scikit-learn
+nltk
