@@ -29,9 +29,9 @@ stop_words = set(stopwords.words('english'))
 ps = PorterStemmer()
 
 def preprocess_text(text):
-    words = word_tokenize(text.lower())
-    words = [ps.stem(word) for word in words if word.isalnum() and word not in stop_words]
-    return ' '.join(words), ' '.join(word_tokenize(text.lower()))  # Return both stemmed and original text
+    words = word_tokenize(text)
+    stemmed_words = [ps.stem(word.lower()) for word in words if word.isalnum() and word.lower() not in stop_words]
+    return ' '.join(stemmed_words), ' '.join(words)  # Return both stemmed and original text
 
 # Update combined_text with preprocessed text
 combined_text = {key: preprocess_text(value) for key, value in combined_text.items()}
@@ -42,6 +42,10 @@ tfidf_matrix = vectorizer.fit_transform([stemmed_text for stemmed_text, _ in com
 
 # Define base URL for verse links
 base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
+
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 # Define route for handling search query
 @app.route('/search', methods=['POST'])
