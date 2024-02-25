@@ -2,21 +2,19 @@ import nltk
 nltk.download('stopwords')
 nltk.download('punkt')
 
-from flask import Flask, render_template, request,jsonify
-
-app = Flask(__name__)
-
+from flask import Flask, render_template, request, jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
+from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 import json
+import joblib
 from flask_cors import CORS
 
-
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
+
 # Load the Bhagavad Gita JSON file with explicit encoding
 with open('MLData.json', 'r', encoding='utf-8') as file:
     bhagavad_gita_data = json.load(file)
@@ -36,9 +34,9 @@ def preprocess_text(text):
 # Update combined_text with preprocessed text
 combined_text = {key: preprocess_text(value) for key, value in combined_text.items()}
 
-# Create a TF-IDF vectorizer with n-grams
-vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_df=0.95, smooth_idf=True)
-tfidf_matrix = vectorizer.fit_transform([stemmed_text for stemmed_text, _ in combined_text.values()])
+# Load pre-processed data and vectorizer using joblib
+vectorizer = joblib.load('vectorizer.pkl')
+tfidf_matrix = joblib.load('tfidf_matrix.pkl')
 
 # Define base URL for verse links
 base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
@@ -70,7 +68,6 @@ def search():
 
     # Highlight the matched words in the content
     highlighted_content = verse_content_original.replace(user_query_original, f"<span class='text-red-500'>{user_query_original}</span>")
-
 
     # Generate the link for the entire verse
     verse_link = f"{base_url}{verse_number}"
