@@ -1,87 +1,86 @@
-# app.py
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+
 from flask import Flask, render_template, request, jsonify
-import json
-import re
-import numpy as np
-import tensorflow as tf
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from keras.models import load_model
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+import json
 import joblib
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
+# Load the Bhagavad Gita JSON file with explicit encoding
+with open('MLData.json', 'r', encoding='utf-8') as file:
+    bhagavad_gita_data = json.load(file)
 
-# Load pre-trained model
-model = load_model("model.h5")
+# Combine translation and purport text for each verse
+combined_text = {key: f"{value['translation']} {' '.join(value['purport'])}" for key, value in bhagavad_gita_data.items()}
 
-# Load pre-trained vectorizer
-vectorizer = joblib.load("vectorizer.joblib")
+# Preprocess text
+stop_words = set(stopwords.words('english'))
+ps = PorterStemmer()
 
-# Load and preprocess data
-with open("MLData.json", "r", encoding="utf-8") as file:
-    data = json.load(file)
+def preprocess_text(text):
+    words = word_tokenize(text)
+    stemmed_words = [ps.stem(word.lower()) for word in words if word.isalnum() and word.lower() not in stop_words]
+    return ' '.join(stemmed_words), ' '.join(words)  # Return both stemmed and original text
 
-verses = []
-verse_numbers = []
+# Update combined_text with preprocessed text
+combined_text = {key: preprocess_text(value) for key, value in combined_text.items()}
 
-for key, value in data.items():
-    verse_numbers.append(value["verse_number"])
-    verse_text = value["translation"] + " ".join(value["purport"])
-    cleaned_text = re.sub(r"[^a-zA-Z0-9\s]", "", verse_text.lower())
-    verses.append(cleaned_text)
-
-# Tokenization and Embedding using TF-IDF
-X = vectorizer.transform(verses)
-X.sort_indices()
-
-# Search Implementation
-def search(query, model, vectorizer, top_k=5):
-    cleaned_query = re.sub(r"[^a-zA-Z0-9\s]", "", query.lower())
-    query_vector = vectorizer.transform([cleaned_query])
-
-    # Compute similarity scores using cosine similarity
-    similarity_scores = cosine_similarity(query_vector, X)
-
-    # Find the indices of the top-k most similar verses
-    top_k_indices = np.argsort(similarity_scores[0])[-top_k:][::-1]
-
-    # Display the top-k results with highlighted text
-    results = []
-    for idx in top_k_indices:
-        result_verse = verses[idx]
-        highlighted_text = highlight_matched_words(result_verse, cleaned_query)
-        results.append({"verse_number": verse_numbers[idx], "text": highlighted_text})
-
-    return results
-
-# Helper function to highlight matched words
-def highlight_matched_words(text, query):
-    words = text.split()
-    highlighted_words = [f"<span style='color:red'>{word}</span>" if word in query.split() else word for word in words]
-    return ' '.join(highlighted_words)
+# Load pre-processed data and vectorizer using joblib
+vectorizer = joblib.load('vectorizer.pkl')
+tfidf_matrix = joblib.load('tfidf_matrix.pkl')
 
 # Define base URL for verse links
 base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
 
-# Routes
-@app.route("/search", methods=["POST"])
-def search_results():
-    user_query = request.form.get("query")
-    results = search(user_query, model, vectorizer)
-    highlighted_content = results[0]["text"] if results else None
-    verse_number = results[0]["verse_number"] if results else None
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# Define route for handling search query
+@app.route('/search', methods=['POST'])
+def search():
+    user_query = request.json['user_query']
+
+    # Preprocess user query
+    user_query_stemmed, user_query_original = preprocess_text(user_query)
+
+    # Vectorize the user query
+    query_vector = vectorizer.transform([user_query_stemmed])
+
+    # Calculate cosine similarity between the query and Bhagavad Gita verses
+    cosine_similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
+
+    # Get the index of the most similar verse
+    most_similar_index = cosine_similarities.argmax()
+
+    # Get the verse number and content of the most similar verse
+    verse_number = list(combined_text.keys())[most_similar_index]
+    verse_content_stemmed, verse_content_original = combined_text[verse_number]
+
+    # Highlight the matched words in the content
+    highlighted_content = verse_content_original.replace(user_query_original, f"<span class='text-red-500'>{user_query_original}</span>")
+
+    # Generate the link for the entire verse
     verse_link = f"{base_url}{verse_number}"
 
+    # Prepare response data
     response_data = {
-        'user_query': user_query,
+        'user_query': user_query_original,
         'verse_number': verse_number,
         'highlighted_content': highlighted_content,
         'verse_link': verse_link
     }
+
     return jsonify(response_data)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
