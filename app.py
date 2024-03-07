@@ -9,6 +9,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from keras.models import load_model
 import joblib
 from flask_cors import CORS
+import warnings
+import tensorflow as tf
+warnings.filterwarnings("ignore", category=tf.py_warning)
 
 app = Flask(__name__)
 CORS(app)
