@@ -59,28 +59,34 @@ def search():
     # Calculate cosine similarity between the query and Bhagavad Gita verses
     cosine_similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
 
-    # Get the index of the most similar verse
-    most_similar_index = cosine_similarities.argmax()
+    # Get the indices of the top 5 most similar verses
+    top_5_indices = cosine_similarities.argsort()[-5:][::-1]
 
-    # Get the verse number and content of the most similar verse
-    verse_number = list(combined_text.keys())[most_similar_index]
-    verse_content_stemmed, verse_content_original = combined_text[verse_number]
+    # Prepare a list to store the results
+    results = []
 
-    # Highlight the matched words in the content
-    highlighted_content = verse_content_original.replace(user_query_original, f"<span class='text-red-500'>{user_query_original}</span>")
+    for index in top_5_indices:
+        # Get the verse number and content of the most similar verse
+        verse_number = list(combined_text.keys())[index]
+        verse_content_stemmed, verse_content_original = combined_text[verse_number]
 
-    # Generate the link for the entire verse
-    verse_link = f"{base_url}{verse_number}"
+        # Highlight the matched words in the content
+        highlighted_content = verse_content_original.replace(user_query_original, f"<span class='text-red-500'>{user_query_original}</span>")
 
-    # Prepare response data
-    response_data = {
-        'user_query': user_query_original,
-        'verse_number': verse_number,
-        'highlighted_content': highlighted_content,
-        'verse_link': verse_link
-    }
+        # Generate the link for the entire verse
+        verse_link = f"{base_url}{verse_number}"
 
-    return jsonify(response_data)
+        # Prepare response data for each result
+        result_data = {
+            'user_query': user_query_original,
+            'verse_number': verse_number,
+            'highlighted_content': highlighted_content,
+            'verse_link': verse_link
+        }
 
+        results.append(result_data)
+
+    return jsonify(results)
+    
 if __name__ == '__main__':
     app.run(debug=True)
