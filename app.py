@@ -67,10 +67,6 @@ def highlight_matched_words(text, query):
 base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
 
 # Routes
-@app.route("/")
-def home():
-    return render_template("index.html")
-
 @app.route("/search", methods=["POST"])
 def search_results():
     user_query = request.form.get("query")
