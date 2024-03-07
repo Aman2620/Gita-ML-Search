@@ -4,3 +4,5 @@ Werkzeug
 scikit-learn
 nltk
 flask_cors
+numpy
+tensorflow
