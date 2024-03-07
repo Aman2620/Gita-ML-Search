@@ -68,7 +68,7 @@ base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
 
 # Routes
 @app.route("/")
-def index():
+def home():
     return render_template("index.html")
 
 @app.route("/search", methods=["POST"])
