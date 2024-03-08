@@ -3,6 +3,4 @@ Gunicorn
 Werkzeug
 scikit-learn
 nltk
-numpy
-re
 flask_cors
