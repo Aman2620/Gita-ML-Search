@@ -65,12 +65,18 @@ def home():
 @app.route("/search", methods=["POST"])
 def search_results():
     user_query = request.json['user_query']
-    results = search(user_query, vectorizer)
-    verse_number = results[0]["verse_number"] if results else None
-    verse_link = f"{base_url}{verse_number}"
 
-    # Assuming you want to display the highlighted text in the results
-    highlighted_content = results[0]["text"] if results else None
+    # Check if user_query is not None before proceeding
+    if user_query is not None:
+        results = search(user_query, vectorizer)
+        verse_number = results[0]["verse_number"] if results else None
+        highlighted_content = results[0]["text"] if results else None
+        verse_link = f"{base_url}{verse_number}"
+    else:
+        # Handle the case when user_query is None
+        verse_number = None
+        highlighted_content = None
+        verse_link = None
 
     response_data = {
         'user_query': user_query,
@@ -78,6 +84,8 @@ def search_results():
         'highlighted_content': highlighted_content,
         'verse_link': verse_link
     }
+
+    # You may want to return a response with the data, for example:
     return jsonify(response_data)
 
 
