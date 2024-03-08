@@ -20,7 +20,7 @@ original_texts = []  # New list to store original text
 for key, value in data.items():
     verse_numbers.append(value["verse_number"])
     verse_text = value["translation"] + " ".join(value["purport"])
-    cleaned_text = re.sub(r"[^a-zA-Z0-9\s]", "", verse_text.lower())
+    cleaned_text = re.sub(r"[^a-zA-Z0-9\s]", "", verse_text)
     verses.append(cleaned_text)
     original_texts.append(verse_text)  # Store the original text
 
@@ -31,7 +31,7 @@ X.sort_indices()
 
 # Search Implementation
 def search(query, vectorizer, top_k=5):
-    cleaned_query = re.sub(r"[^a-zA-Z0-9\s]", "", query.lower())
+    cleaned_query = re.sub(r"[^a-zA-Z0-9\s]", "", query)
     query_vector = vectorizer.transform([cleaned_query])
     
     # Compute similarity scores using cosine similarity
@@ -52,7 +52,7 @@ def search(query, vectorizer, top_k=5):
 # Helper function to highlight matched words
 def highlight_matched_words(original_text, query):
     words = original_text.split()
-    highlighted_words = [f"<span style='color:red'>{word}</span>" if word.lower() in query.lower().split() else word for word in words]
+    highlighted_words = [f"<span style='color:red'>{word}</span>" if word in query.split() else word for word in words]
     return ' '.join(highlighted_words)
 
 base_url = "https://gita-learn.vercel.app/VerseDetail?chapterVerse="
@@ -64,26 +64,13 @@ def home():
 
 @app.route("/search", methods=["POST"])
 def search_results():
-    user_query = request.json.get('user_query')
+    user_query = request.form.get("query")
+    results = search(user_query, vectorizer)
+    verse_number = results[0]["verse_number"] if results else None
+    verse_link = f"{base_url}{verse_number}"
 
-    # Check if user_query is not None before proceeding
-    if user_query is not None:
-        results = search(user_query, vectorizer)
-
-        if results:
-            verse_number = results[0]["verse_number"]
-            highlighted_content = results[0]["text"]
-            verse_link = f"{base_url}{verse_number}"
-        else:
-            # Handle the case when results are empty
-            verse_number = None
-            highlighted_content = None
-            verse_link = None
-    else:
-        # Handle the case when user_query is None
-        verse_number = None
-        highlighted_content = None
-        verse_link = None
+    # Assuming you want to display the highlighted text in the results
+    highlighted_content = results[0]["text"] if results else None
 
     response_data = {
         'user_query': user_query,
@@ -91,8 +78,6 @@ def search_results():
         'highlighted_content': highlighted_content,
         'verse_link': verse_link
     }
-
-    # You may want to return a response with the data, for example:
     return jsonify(response_data)
 
 
