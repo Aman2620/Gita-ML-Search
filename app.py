@@ -64,14 +64,21 @@ def home():
 
 @app.route("/search", methods=["POST"])
 def search_results():
-    user_query = request.json['user_query']
+    user_query = request.json.get('user_query')
 
     # Check if user_query is not None before proceeding
     if user_query is not None:
         results = search(user_query, vectorizer)
-        verse_number = results[0]["verse_number"] if results else None
-        highlighted_content = results[0]["text"] if results else None
-        verse_link = f"{base_url}{verse_number}"
+
+        if results:
+            verse_number = results[0]["verse_number"]
+            highlighted_content = results[0]["text"]
+            verse_link = f"{base_url}{verse_number}"
+        else:
+            # Handle the case when results are empty
+            verse_number = None
+            highlighted_content = None
+            verse_link = None
     else:
         # Handle the case when user_query is None
         verse_number = None
