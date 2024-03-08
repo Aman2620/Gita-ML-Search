@@ -64,7 +64,7 @@ def home():
 
 @app.route("/search", methods=["POST"])
 def search_results():
-    user_query = request.form.get("query")
+    user_query = request.json['user_query']
     results = search(user_query, vectorizer)
     verse_number = results[0]["verse_number"] if results else None
     verse_link = f"{base_url}{verse_number}"
